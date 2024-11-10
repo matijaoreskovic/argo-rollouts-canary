@@ -3,6 +3,10 @@ kind: Rollout
 metadata:
   name: canary
   namespace: default
+  annotations:
+    notifications.argoproj.io/subscribe.on-rollout-completed.slack: "notifications-test" # Change this with your slack channel
+    notifications.argoproj.io/subscribe.on-rollout-step-completed.slack: "notifications-test" # Change this with your slack channel
+    notifications.argoproj.io/subscribe.on-rollout-aborted.slack: "notifications-test" # Change this with your slack channel
 spec:
   replicas: 10
   selector:

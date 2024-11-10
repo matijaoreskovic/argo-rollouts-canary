@@ -1,0 +1,73 @@
+notifications:
+  dashboard:
+    enabled: true
+  configmap:
+    create: true
+  secret:
+    create: true
+    items:
+      slack-token: xoxb-xyz # Add slack token here
+  notifiers:
+    service.slack: |
+      token: $slack-token
+  templates:
+    template.rollout-completed: |
+      slack:
+        attachments: |
+            [{
+              "title": ":white_check_mark: We just released a new {{ camelcase .rollout.metadata.name }} version!",
+              "color": "#18be52",
+              "fields": [
+                {
+                  {{- $image := (index .rollout.spec.template.spec.containers 0).image -}}
+                  {{- $version := regexReplaceAll ".*:" $image "" -}}
+                  "title": "Service: {{ camelcase .rollout.metadata.name }}",
+                  "value": "Version: {{ $version }}",
+                  "short": true
+                }
+              ]
+            }]
+    template.rollout-step-completed: |
+      slack:
+        attachments: |
+            [{
+              "title": "Canary step for {{ camelcase .rollout.metadata.name }} rollout completed!",
+              "color": "#f2c744",
+              "fields": [
+                {
+                  {{- $step := (int .rollout.status.currentStepIndex) -}}
+                  {{- $weight := (index .rollout.spec.strategy.canary.steps $step).setWeight -}}
+                  {{- $image := (index .rollout.spec.template.spec.containers 0).image -}}
+                  {{- $version := regexReplaceAll ".*:" $image "" -}}
+                  "title": "Service: {{ camelcase .rollout.metadata.name }} with version {{ $version }}",
+                  "value": "Current weight: {{ $weight }}%",
+                  "short": true
+                }
+              ]
+            }]
+    template.rollout-aborted: |
+      slack:
+        attachments: |
+            [{
+              "title": "Canary rollout for {{ camelcase .rollout.metadata.name }} aborted! :x:",
+              "color": "#ff0000",
+              "fields": [
+                {
+                  {{- $step := (int .rollout.status.currentStepIndex) -}}
+                  {{- $weight := (index .rollout.spec.strategy.canary.steps $step).setWeight -}}
+                  {{- $image := (index .rollout.spec.template.spec.containers 0).image -}}
+                  {{- $version := regexReplaceAll ".*:" $image "" -}}
+                  "title": "{{ camelcase .rollout.metadata.name }} with version {{ $version }}",
+                  "value": "Rolling back to previous version...",
+                  "short": true
+                }
+              ]
+            }]
+  triggers:
+    trigger.on-rollout-completed: |
+      - send: [rollout-completed]
+    trigger.on-rollout-step-completed: |
+      - send: [rollout-step-completed]
+        when: (rollout.status.currentStepIndex % 2) == 0 && rollout.status.abort != true
+    trigger.on-rollout-aborted: |
+      - send: [rollout-aborted]

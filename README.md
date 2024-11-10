@@ -82,7 +82,7 @@ At this moment, "red" version should be shown equally times as "blue" (1:1 ratio
 
 After two minutes on 50% step, Argo Rollouts will proceed to 100% and only available version will be "red"
 
-### Cleanup
+## Cleanup
 
 To remove everything added run
 ```bash
